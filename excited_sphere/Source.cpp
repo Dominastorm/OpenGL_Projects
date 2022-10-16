@@ -98,7 +98,6 @@ float dist(float ax, float ay, float az, float bx, float by, float bz) {
 	return ans;
 }
 
-
 Object3D handleSphereCollision(Object3D t) {
 	float n = dist(t.x, t.y, t.z, 0, 0, 0);
 	if (n > sphere_size - (float)(t.size / 1.414)) {
@@ -111,6 +110,29 @@ Object3D handleSphereCollision(Object3D t) {
 	return t;
 }
 
+
+tuple<Object3D, Object3D> handleObjectsCollision(Object3D t1, Object3D t2) {
+	if (dist(t1.x, t1.y, t1.z, t2.x, t2.y, t2.z) < (float)(t1.size + t2.size) / 2) {
+		if (t1.paused and !t2.paused) {
+			t2.vx = -t2.vx;
+			t2.vy = -t2.vy;
+			t2.vz = -t2.vz;
+		}
+		if (t2.paused and !t1.paused) {
+			t1.vx = -t1.vx;
+			t1.vy = -t1.vy;
+			t1.vz = -t1.vz;
+		}
+		if (!(t1.paused or t2.paused)) {
+			float temp[3];
+			temp[0] = t1.vx; temp[1] = t1.vy; temp[2] = t1.vz;
+			t1.vx = t2.vx; t1.vy = t2.vy; t1.vz = t2.vz;
+			t2.vx = temp[0]; t2.vy = temp[1]; t2.vz = temp[2];
+		}
+	}
+	return make_tuple(t1, t2);
+}
+
 Object3D randomMotion(Object3D t) {
 	t.x = t.x + t.vx;
 	t.y = t.y + t.vy;
@@ -120,7 +142,6 @@ Object3D randomMotion(Object3D t) {
 	glutPostRedisplay();
 	return t;
 }
-
 
 Object3D cube1(cube_size, -.5);
 Object3D cube2(cube_size, 0);
@@ -149,6 +170,10 @@ void display()
 
 	cube(cube3);
 	cube3 = randomMotion(cube3);
+
+	tie(cube1, cube2) = handleObjectsCollision(cube1, cube2);
+	tie(cube2, cube3) = handleObjectsCollision(cube2, cube3);
+	tie(cube3, cube1) = handleObjectsCollision(cube3, cube1);
 
 	sphere();
 
