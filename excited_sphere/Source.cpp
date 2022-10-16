@@ -89,14 +89,38 @@ void cube(Object3D t) {
 	glPopMatrix();
 }
 
+float dist(float ax, float ay, float az, float bx, float by, float bz) {
+	float ans = 0;
+	ans += pow(ax - bx, 2);
+	ans += pow(ay - by, 2);
+	ans += pow(az - bz, 2);
+	ans = pow(ans, 0.5);
+	return ans;
+}
+
+
+Object3D handleSphereCollision(Object3D t) {
+	float n = dist(t.x, t.y, t.z, 0, 0, 0);
+	if (n > sphere_size - (float)(t.size / 1.414)) {
+		float nx = t.x / n, ny = t.y / n, nz = t.z / n;
+		float ndotv = t.vx * nx + t.vy * ny + t.vz * nz;
+		t.vx = t.vx - 2 * (ndotv)*nx;
+		t.vy = t.vy - 2 * (ndotv)*ny;
+		t.vz = t.vz - 2 * (ndotv)*nz;
+	}
+	return t;
+}
+
 Object3D randomMotion(Object3D t) {
 	t.x = t.x + t.vx;
 	t.y = t.y + t.vy;
 	t.z = t.z + t.vz;
 	if (!t.paused) t.angle += 0.01;
+	t = handleSphereCollision(t);
 	glutPostRedisplay();
 	return t;
 }
+
 
 Object3D cube1(cube_size, -.5);
 Object3D cube2(cube_size, 0);
