@@ -1,10 +1,32 @@
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <sstream>
 #include <GL/glut.h>
+#include <glm/glm/glm.hpp>
 #include <random>
 #include <cmath>
 #include <tuple>
 
 using namespace std;
+
+namespace globals {
+	int screen_width = 720;
+	int screen_height = 720;
+
+	const int window_start_position_x = 100;
+	const int window_start_position_y = 100;
+
+	const glm::vec4 clear_color(0.2f, 0.2f, 0.2f, 1.0f);
+
+	std::vector <glm::vec3> vertices;
+	std::vector <std::tuple <int, int, int>> faces;
+
+	std::random_device rd;
+	std::mt19937 rng(rd());
+	std::uniform_real_distribution <> distribution(0.0f, 1.0f);
+}
 
 const double pi = 3.14159265358979323846;
 const float cube_size = .25, sphere_size = 1.2;
@@ -18,6 +40,7 @@ float random() {
 	return distribution(rng);
 }
 
+// Set the lighting for the material of the objects
 void setMaterial(float ambientR, float ambientG, float ambientB, float diffuseR, float diffuseG, float diffuseB, float specularR, float specularG, float specularB, float shine) {
 	GLfloat ambient[] = { ambientR, ambientG, ambientB };
 	GLfloat diffuse[] = { diffuseR, diffuseG, diffuseB };
@@ -53,7 +76,9 @@ public:
 	float theta = 0, phi = 0, r = 2;
 	float x = 0, y = 0, z = r;
 	float lax = 0, lay = 0, laz = 0;
+
 };
+
 
 void sphere(float size = sphere_size) {
 	glPushMatrix();
@@ -79,6 +104,48 @@ public:
 	}
 };
 
+void read_mesh() {
+	std::cout << "printing" << std::endl;
+	using globals::vertices;
+	using globals::faces;
+
+	std::ifstream file("res/suzanne.obj");
+
+	std::string line;
+	std::stringstream ss;
+	glm::vec3 v;
+
+	while (not file.eof()) {
+		std::getline(file, line);
+		std::string type = line.substr(0, 2);
+
+		if (type == "v ") {
+			ss << line.substr(2);
+			ss >> v.x >> v.y >> v.z;
+			v.x *= 0.02;
+			v.y *= 0.02;
+			v.z *= 0.02;
+			vertices.push_back(v);
+			ss.clear();
+		}
+		else if (type == "f ") {
+			int x, y, z;
+			ss << line.substr(2);
+
+			ss >> line;
+			x = std::stoi(line.substr(0, line.find_first_of('/'))) - 1;
+			ss >> line;
+			y = std::stoi(line.substr(0, line.find_first_of('/'))) - 1;
+			ss >> line;
+			z = std::stoi(line.substr(0, line.find_first_of('/'))) - 1;
+
+			faces.push_back({ x, y, z });
+			ss.clear();
+		}
+	}
+	file.close();
+}
+
 void cube(Object3D t) {
 	glPushMatrix();
 	glColor3f(t.color[0], t.color[1], t.color[2]);
@@ -88,6 +155,17 @@ void cube(Object3D t) {
 	glutSolidCube(t.size);
 	glPopMatrix();
 }
+
+void box(Object3D t) {
+	glPushMatrix();
+	glColor3f(t.color[0], t.color[1], t.color[2]);
+	glTranslatef(t.x, t.y, t.z);
+	glRotatef(t.angle, t.rx, t.ry, t.rz);
+	setMaterial(0.2, 0.2, 0.2, 0.3, 0.3, 0.3, 0.5, 0.5, 0.5, 64);
+	read_mesh();
+	glPopMatrix();
+}
+
 
 float dist(float ax, float ay, float az, float bx, float by, float bz) {
 	float ans = 0;
@@ -109,7 +187,6 @@ Object3D handleSphereCollision(Object3D t) {
 	}
 	return t;
 }
-
 
 tuple<Object3D, Object3D> handleObjectsCollision(Object3D t1, Object3D t2) {
 	if (dist(t1.x, t1.y, t1.z, t2.x, t2.y, t2.z) < (float)(t1.size + t2.size) / 2) {
@@ -146,11 +223,73 @@ Object3D randomMotion(Object3D t) {
 Object3D cube1(cube_size, -.5);
 Object3D cube2(cube_size, 0);
 Object3D cube3(cube_size, .5);
+Object3D taj(cube_size, -.5);
 Camera cam;
+
+void rotateCam(float x) {
+	cam.theta += x;
+	cam.x = cam.r * sin(cam.theta * pi / 180);
+	cam.z = cam.r * cos(cam.theta * pi / 180);
+}
+
+void translateCamX(float x) {
+	cam.x += x;
+	cam.lax += x;
+}
+
+void translateCamY(float y) {
+	cam.y += y;
+	cam.lay += y;
+}
+
+void translateCamZ(float z) {
+	cam.r = abs(cam.r);
+	cam.r += z;
+	cam.x = cam.r * sin(cam.theta * pi / 180);
+	cam.z = cam.r * cos(cam.theta * pi / 180);
+}
+
+
+void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
+	switch (key) {
+	case 'W':
+	case 'w':
+		translateCamY(-0.1);
+		break;
+	case 'A':
+	case 'a':
+		translateCamX(0.1);
+		break;
+	case 'S':
+	case 's':
+		translateCamY(0.1);
+		break;
+	case 'D':
+	case 'd':
+		translateCamX(-0.1);
+		break;
+	case 'E':
+	case 'e':
+		rotateCam(-10);
+		break;
+	case 'Q':
+	case 'q':
+		rotateCam(10);
+		break;
+	case 'X':
+	case 'x':
+		translateCamZ(-0.1);
+		break;
+	case 'Z':
+	case 'z':
+		translateCamZ(0.1);
+		break;
+	}
+}
 
 void display()
 {
-	glEnable(GL_DEPTH_TEST);
+	using namespace globals;
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -161,6 +300,9 @@ void display()
 	gluLookAt(cam.x, cam.y, cam.z, cam.lax, cam.lay, cam.laz, cam.upx, cam.upy, cam.upz);
 
 	glColor3f(.5, .5, .5);
+
+	/*box(taj);
+	taj = randomMotion(taj);*/
 
 	cube(cube1);
 	cube1 = randomMotion(cube1);
@@ -175,6 +317,21 @@ void display()
 	tie(cube2, cube3) = handleObjectsCollision(cube2, cube3);
 	tie(cube3, cube1) = handleObjectsCollision(cube3, cube1);
 
+	glBegin(GL_TRIANGLES);
+	for (auto& i: globals::faces) {
+		int x = std::get <0> (i);
+		int y = std::get <1>(i);
+		int z = std::get <2>(i);
+		auto& v1 = globals::vertices[x];
+		auto& v2 = globals::vertices[y];
+		auto& v3 = globals::vertices[z];
+		glVertex3f(v1.x, v1.y, v1.z);
+		glVertex3f(v2.x, v2.y, v2.z);
+		glVertex3f(v3.x, v3.y, v3.z);
+		glColor3f(random(), random(), random());
+	}
+	glEnd();
+
 	sphere();
 
 	glutSwapBuffers();
@@ -188,7 +345,7 @@ int main(int argc, char* argv[])
 	glutInitWindowPosition(10, 10);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
 
-	glutCreateWindow("3 Bouncing Cubes");
+	glutCreateWindow("3 Bouncing Objects");
 
 	glEnable(GL_DEPTH_TEST);
 
@@ -198,11 +355,13 @@ int main(int argc, char* argv[])
 
 	glutDisplayFunc(display);
 
+	glutKeyboardFunc(handleKeyPress);
 
-	glMatrixMode(GL_PROJECTION); 
+	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
 	gluPerspective(90, 1, 0.5, 1000);
+	glEnable(GL_DEPTH_TEST);
 
 	glutMainLoop();
 }
