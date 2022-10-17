@@ -26,6 +26,9 @@ namespace globals {
 	std::vector <glm::vec3> big_ben_vertices;
 	std::vector <std::tuple <int, int, int>> big_ben_faces;
 
+	std::vector <glm::vec3> laptop_bag_vertices;
+	std::vector <std::tuple <int, int, int>> laptop_bag_faces;
+
 	std::random_device rd;
 	std::mt19937 rng(rd());
 	std::uniform_real_distribution <> distribution(0.0f, 1.0f);
@@ -244,7 +247,7 @@ Object3D randomMotion(Object3D t) {
 	return t;
 }
 
-Object3D cube1(cube_size, -.5);
+Object3D laptop_bag(cube_size, -.5);
 Object3D big_ben(cube_size, 0);
 Object3D taj(cube_size, .5);
 Camera cam;
@@ -317,12 +320,12 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 		resetCam();
 		break;
 	case ' ':
-		cube1.should_pause = !cube1.should_pause;
+		laptop_bag.should_pause = !laptop_bag.should_pause;
 		big_ben.should_pause = !big_ben.should_pause;
 		taj.should_pause = !taj.should_pause;
 		break;
 	case '1':
-		cube1.should_pause = !cube1.should_pause;
+		laptop_bag.should_pause = !laptop_bag.should_pause;
 		break;
 	case '2':
 		big_ben.should_pause = !big_ben.should_pause;
@@ -331,8 +334,8 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 		taj.should_pause = !taj.should_pause;
 		break;
 	case '4':
-		if (cube1.paused) {
-			cube1.angle -= 1;
+		if (laptop_bag.paused) {
+			laptop_bag.angle -= 1;
 		}
 		if (big_ben.paused) {
 			big_ben.angle -= 1;
@@ -342,8 +345,8 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 		}
 		break;
 	case '5':
-		if (cube1.paused) {
-			cube1.angle += 1;
+		if (laptop_bag.paused) {
+			laptop_bag.angle += 1;
 		}
 		if (big_ben.paused) {
 			big_ben.angle += 1;
@@ -370,8 +373,8 @@ void display()
 
 	glColor3f(.5, .5, .5);
 
-	cube(cube1);
-	cube1 = randomMotion(cube1);
+	obj(laptop_bag, laptop_bag_vertices, laptop_bag_faces);
+	laptop_bag = randomMotion(laptop_bag);
 
 	obj(big_ben, big_ben_vertices, big_ben_faces);
 	big_ben = randomMotion(big_ben);
@@ -379,9 +382,9 @@ void display()
 	obj(taj, taj_vertices, taj_faces);
 	taj = randomMotion(taj);
 
-	tie(cube1, big_ben) = handleObjectsCollision(cube1, big_ben);
+	tie(laptop_bag, big_ben) = handleObjectsCollision(laptop_bag, big_ben);
 	tie(big_ben, taj) = handleObjectsCollision(big_ben, taj);
-	tie(taj, cube1) = handleObjectsCollision(taj, cube1);
+	tie(taj, laptop_bag) = handleObjectsCollision(taj, laptop_bag);
 
 	sphere();
 
@@ -392,6 +395,7 @@ int main(int argc, char* argv[])
 {
 	read_mesh("res/taj_mahal.obj", 0.005, globals::taj_vertices, globals::taj_faces);
 	read_mesh("res/big_ben.obj", 0.1, globals::big_ben_vertices, globals::big_ben_faces);
+	read_mesh("res/laptop_bag.obj", 0.5, globals::laptop_bag_vertices, globals::laptop_bag_faces);
 
 	glutInit(&argc, argv);
 
