@@ -176,6 +176,19 @@ float dist(float ax, float ay, float az, float bx, float by, float bz) {
 	return ans;
 }
 
+Object3D handlePause(Object3D t) {
+	if (t.should_pause == true and t.paused == false) {
+		t.temp[0] = t.vx; t.temp[1] = t.vy; t.temp[2] = t.vz;
+		t.vx = 0; t.vy = 0; t.vz = 0;
+		t.paused = true;
+	}
+	if (t.should_pause == false and t.paused == true) {
+		t.vx = t.temp[0]; t.vy = t.temp[1]; t.vz = t.temp[2];
+		t.paused = false;
+	}
+	return t;
+}
+
 Object3D handleSphereCollision(Object3D t) {
 	float n = dist(t.x, t.y, t.z, 0, 0, 0);
 	if (n > sphere_size - (float)(t.size / 1.414)) {
@@ -216,6 +229,7 @@ Object3D randomMotion(Object3D t) {
 	t.z = t.z + t.vz;
 	if (!t.paused) t.angle += 0.01;
 	t = handleSphereCollision(t);
+	t = handlePause(t);
 	glutPostRedisplay();
 	return t;
 }
@@ -247,6 +261,11 @@ void translateCamZ(float z) {
 	cam.r += z;
 	cam.x = cam.r * sin(cam.theta * pi / 180);
 	cam.z = cam.r * cos(cam.theta * pi / 180);
+}
+
+void resetCam() {
+	Camera newCamera;
+	cam = newCamera;
 }
 
 
@@ -284,7 +303,48 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 	case 'z':
 		translateCamZ(0.1);
 		break;
+	case 'R':
+	case 'r':
+		resetCam();
+		break;		
+	case ' ':
+		cube1.should_pause = !cube1.should_pause;
+		cube2.should_pause = !cube2.should_pause;
+		cube3.should_pause = !cube3.should_pause;
+		break;
+	case '1':
+		cube1.should_pause = !cube1.should_pause;
+		break;
+	case '2':
+		cube2.should_pause = !cube2.should_pause;
+		break;
+	case '3':
+		cube3.should_pause = !cube3.should_pause;
+		break;
+	case '4':
+		if (cube1.paused) {
+			cube1.angle -= 1;
+		}
+		if (cube2.paused) {
+			cube2.angle -= 1;
+		}
+		if (cube3.paused) {
+			cube3.angle -= 1;
+		}
+		break;
+	case '5':
+		if (cube1.paused) {
+			cube1.angle += 1;
+		}
+		if (cube2.paused) {
+			cube2.angle += 1;
+		}
+		if (cube3.paused) {
+			cube3.angle += 1;
+		}
+		break;
 	}
+	glutPostRedisplay();
 }
 
 void display()
