@@ -23,6 +23,9 @@ namespace globals {
 	std::vector <glm::vec3> taj_vertices;
 	std::vector <std::tuple <int, int, int>> taj_faces;
 
+	std::vector <glm::vec3> big_ben_vertices;
+	std::vector <std::tuple <int, int, int>> big_ben_faces;
+
 	std::random_device rd;
 	std::mt19937 rng(rd());
 	std::uniform_real_distribution <> distribution(0.0f, 1.0f);
@@ -104,10 +107,7 @@ public:
 	}
 };
 
-void read_mesh(const std::string& filename, float scale) {
-	using globals::taj_vertices;
-	using globals::taj_faces;
-
+void read_mesh(const std::string& filename, float scale, std::vector <glm::vec3> &vertices, std::vector <std::tuple <int, int, int>> &faces) {
 	std::ifstream file(filename);
 
 	std::string line;
@@ -124,7 +124,7 @@ void read_mesh(const std::string& filename, float scale) {
 			v.x *= scale;
 			v.y *= scale;
 			v.z *= scale;
-			taj_vertices.push_back(v);
+			vertices.push_back(v);
 			ss.clear();
 		}
 		else if (type == "f ") {
@@ -138,7 +138,7 @@ void read_mesh(const std::string& filename, float scale) {
 			ss >> line;
 			z = std::stoi(line.substr(0, line.find_first_of('/'))) - 1;
 
-			taj_faces.push_back({ x, y, z });
+			faces.push_back({ x, y, z });
 			ss.clear();
 		}
 	}
@@ -245,8 +245,8 @@ Object3D randomMotion(Object3D t) {
 }
 
 Object3D cube1(cube_size, -.5);
-Object3D cube2(cube_size, 0);
-Object3D taj1(cube_size, .5);
+Object3D big_ben(cube_size, 0);
+Object3D taj(cube_size, .5);
 Camera cam;
 
 void rotateCam(float x) {
@@ -318,38 +318,38 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 		break;
 	case ' ':
 		cube1.should_pause = !cube1.should_pause;
-		cube2.should_pause = !cube2.should_pause;
-		taj1.should_pause = !taj1.should_pause;
+		big_ben.should_pause = !big_ben.should_pause;
+		taj.should_pause = !taj.should_pause;
 		break;
 	case '1':
 		cube1.should_pause = !cube1.should_pause;
 		break;
 	case '2':
-		cube2.should_pause = !cube2.should_pause;
+		big_ben.should_pause = !big_ben.should_pause;
 		break;
 	case '3':
-		taj1.should_pause = !taj1.should_pause;
+		taj.should_pause = !taj.should_pause;
 		break;
 	case '4':
 		if (cube1.paused) {
 			cube1.angle -= 1;
 		}
-		if (cube2.paused) {
-			cube2.angle -= 1;
+		if (big_ben.paused) {
+			big_ben.angle -= 1;
 		}
-		if (taj1.paused) {
-			taj1.angle -= 1;
+		if (taj.paused) {
+			taj.angle -= 1;
 		}
 		break;
 	case '5':
 		if (cube1.paused) {
 			cube1.angle += 1;
 		}
-		if (cube2.paused) {
-			cube2.angle += 1;
+		if (big_ben.paused) {
+			big_ben.angle += 1;
 		}
-		if (taj1.paused) {
-			taj1.angle += 1;
+		if (taj.paused) {
+			taj.angle += 1;
 		}
 		break;
 	}
@@ -373,15 +373,15 @@ void display()
 	cube(cube1);
 	cube1 = randomMotion(cube1);
 
-	cube(cube2);
-	cube2 = randomMotion(cube2);
+	obj(big_ben, big_ben_vertices, big_ben_faces);
+	big_ben = randomMotion(big_ben);
 
-	obj(taj1, taj_vertices, taj_faces);
-	taj1 = randomMotion(taj1);
+	obj(taj, taj_vertices, taj_faces);
+	taj = randomMotion(taj);
 
-	tie(cube1, cube2) = handleObjectsCollision(cube1, cube2);
-	tie(cube2, taj1) = handleObjectsCollision(cube2, taj1);
-	tie(taj1, cube1) = handleObjectsCollision(taj1, cube1);
+	tie(cube1, big_ben) = handleObjectsCollision(cube1, big_ben);
+	tie(big_ben, taj) = handleObjectsCollision(big_ben, taj);
+	tie(taj, cube1) = handleObjectsCollision(taj, cube1);
 
 	sphere();
 
@@ -390,7 +390,8 @@ void display()
 
 int main(int argc, char* argv[])
 {
-	read_mesh("res/tajmahal.obj", 0.005);
+	read_mesh("res/taj_mahal.obj", 0.005, globals::taj_vertices, globals::taj_faces);
+	read_mesh("res/big_ben.obj", 0.1, globals::big_ben_vertices, globals::big_ben_faces);
 
 	glutInit(&argc, argv);
 
