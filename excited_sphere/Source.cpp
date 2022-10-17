@@ -20,8 +20,8 @@ namespace globals {
 
 	const glm::vec4 clear_color(0.2f, 0.2f, 0.2f, 1.0f);
 
-	std::vector <glm::vec3> vertices;
-	std::vector <std::tuple <int, int, int>> faces;
+	std::vector <glm::vec3> taj_vertices;
+	std::vector <std::tuple <int, int, int>> taj_faces;
 
 	std::random_device rd;
 	std::mt19937 rng(rd());
@@ -36,7 +36,7 @@ random_device device;
 mt19937 rng(device());
 uniform_real_distribution<>distribution(0.0f, 1.0f);
 
-float random() {
+float random_number() {
 	return distribution(rng);
 }
 
@@ -89,27 +89,26 @@ void sphere(float size = sphere_size) {
 
 class Object3D {
 public:
-	float x = 0.5 - random(), y = 0.5 - random(), z = 0.5 - random();
+	float x = 0.5 - random_number(), y = 0.5 - random_number(), z = 0.5 - random_number();
 	float temp[3] = { 0,0,0 };
 	bool should_pause = false;
 	bool paused = false;
 	float size = 0;
-	float color[3] = { random(), random(), random() };
-	float vx = (-0.5f + random()) / 2000, vy = (-0.5f + random()) / 2000, vz = (-0.5f + random()) / 2000;
-	float angle = 0, rx = random() / 100, ry = random() / 100, rz = random() / 100;
+	float color[3] = { random_number(), random_number(), random_number() };
+	float vx = (-0.5f + random_number()) / 200, vy = (-0.5f + random_number()) / 200, vz = (-0.5f + random_number()) / 200;
+	float angle = 0, rx = random_number() / 100, ry = random_number() / 100, rz = random_number() / 100;
 
-	Object3D(float sz = 0, float stx = -0.5f + random()) {
+	Object3D(float sz = 0, float stx = -0.5f + random_number()) {
 		x = stx;
 		size = sz;
 	}
 };
 
-void read_mesh() {
-	std::cout << "printing" << std::endl;
-	using globals::vertices;
-	using globals::faces;
+void read_mesh(const std::string& filename, float scale) {
+	using globals::taj_vertices;
+	using globals::taj_faces;
 
-	std::ifstream file("res/suzanne.obj");
+	std::ifstream file(filename);
 
 	std::string line;
 	std::stringstream ss;
@@ -122,10 +121,10 @@ void read_mesh() {
 		if (type == "v ") {
 			ss << line.substr(2);
 			ss >> v.x >> v.y >> v.z;
-			v.x *= 0.02;
-			v.y *= 0.02;
-			v.z *= 0.02;
-			vertices.push_back(v);
+			v.x *= scale;
+			v.y *= scale;
+			v.z *= scale;
+			taj_vertices.push_back(v);
 			ss.clear();
 		}
 		else if (type == "f ") {
@@ -139,7 +138,7 @@ void read_mesh() {
 			ss >> line;
 			z = std::stoi(line.substr(0, line.find_first_of('/'))) - 1;
 
-			faces.push_back({ x, y, z });
+			taj_faces.push_back({ x, y, z });
 			ss.clear();
 		}
 	}
@@ -156,16 +155,27 @@ void cube(Object3D t) {
 	glPopMatrix();
 }
 
-void box(Object3D t) {
+void obj(Object3D t, std::vector <glm::vec3> vertices, std::vector <std::tuple <int, int, int>> faces) {
 	glPushMatrix();
-	glColor3f(t.color[0], t.color[1], t.color[2]);
 	glTranslatef(t.x, t.y, t.z);
 	glRotatef(t.angle, t.rx, t.ry, t.rz);
 	setMaterial(0.2, 0.2, 0.2, 0.3, 0.3, 0.3, 0.5, 0.5, 0.5, 64);
-	read_mesh();
+	glBegin(GL_TRIANGLES);
+	for (auto& i : faces) {
+		int x = std::get <0>(i);
+		int y = std::get <1>(i);
+		int z = std::get <2>(i);
+		auto& v1 = vertices[x];
+		auto& v2 = vertices[y];
+		auto& v3 = vertices[z];
+		 glColor3f(random_number(), random_number(), random_number());
+		glVertex3f(v1.x, v1.y, v1.z);
+		glVertex3f(v2.x, v2.y, v2.z);
+		glVertex3f(v3.x, v3.y, v3.z);
+	}
+	glEnd();
 	glPopMatrix();
 }
-
 
 float dist(float ax, float ay, float az, float bx, float by, float bz) {
 	float ans = 0;
@@ -236,8 +246,7 @@ Object3D randomMotion(Object3D t) {
 
 Object3D cube1(cube_size, -.5);
 Object3D cube2(cube_size, 0);
-Object3D cube3(cube_size, .5);
-Object3D taj(cube_size, -.5);
+Object3D taj1(cube_size, .5);
 Camera cam;
 
 void rotateCam(float x) {
@@ -306,11 +315,11 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 	case 'R':
 	case 'r':
 		resetCam();
-		break;		
+		break;
 	case ' ':
 		cube1.should_pause = !cube1.should_pause;
 		cube2.should_pause = !cube2.should_pause;
-		cube3.should_pause = !cube3.should_pause;
+		taj1.should_pause = !taj1.should_pause;
 		break;
 	case '1':
 		cube1.should_pause = !cube1.should_pause;
@@ -319,7 +328,7 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 		cube2.should_pause = !cube2.should_pause;
 		break;
 	case '3':
-		cube3.should_pause = !cube3.should_pause;
+		taj1.should_pause = !taj1.should_pause;
 		break;
 	case '4':
 		if (cube1.paused) {
@@ -328,8 +337,8 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 		if (cube2.paused) {
 			cube2.angle -= 1;
 		}
-		if (cube3.paused) {
-			cube3.angle -= 1;
+		if (taj1.paused) {
+			taj1.angle -= 1;
 		}
 		break;
 	case '5':
@@ -339,8 +348,8 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 		if (cube2.paused) {
 			cube2.angle += 1;
 		}
-		if (cube3.paused) {
-			cube3.angle += 1;
+		if (taj1.paused) {
+			taj1.angle += 1;
 		}
 		break;
 	}
@@ -361,36 +370,18 @@ void display()
 
 	glColor3f(.5, .5, .5);
 
-	/*box(taj);
-	taj = randomMotion(taj);*/
-
 	cube(cube1);
 	cube1 = randomMotion(cube1);
 
 	cube(cube2);
 	cube2 = randomMotion(cube2);
 
-	cube(cube3);
-	cube3 = randomMotion(cube3);
+	obj(taj1, taj_vertices, taj_faces);
+	taj1 = randomMotion(taj1);
 
 	tie(cube1, cube2) = handleObjectsCollision(cube1, cube2);
-	tie(cube2, cube3) = handleObjectsCollision(cube2, cube3);
-	tie(cube3, cube1) = handleObjectsCollision(cube3, cube1);
-
-	glBegin(GL_TRIANGLES);
-	for (auto& i: globals::faces) {
-		int x = std::get <0> (i);
-		int y = std::get <1>(i);
-		int z = std::get <2>(i);
-		auto& v1 = globals::vertices[x];
-		auto& v2 = globals::vertices[y];
-		auto& v3 = globals::vertices[z];
-		glVertex3f(v1.x, v1.y, v1.z);
-		glVertex3f(v2.x, v2.y, v2.z);
-		glVertex3f(v3.x, v3.y, v3.z);
-		glColor3f(random(), random(), random());
-	}
-	glEnd();
+	tie(cube2, taj1) = handleObjectsCollision(cube2, taj1);
+	tie(taj1, cube1) = handleObjectsCollision(taj1, cube1);
 
 	sphere();
 
@@ -399,6 +390,8 @@ void display()
 
 int main(int argc, char* argv[])
 {
+	read_mesh("res/tajmahal.obj", 0.005);
+
 	glutInit(&argc, argv);
 
 	glutInitWindowSize(WINDOW_SIZE[0], WINDOW_SIZE[1]);
