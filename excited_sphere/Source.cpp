@@ -363,9 +363,99 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 	glutPostRedisplay();
 }
 
+
+bool selected = false, waspaused = false, dragaround = false;
+int temp;
+
+void currMousePos(int x, int y) { // handles moving selected object around
+	float relx, rely, relz;
+	if (dragaround) {
+		relx = (sphere_size * 7.0f / 6.0f) * (float)cos(cam.theta * pi / 180) * (float)(x - WINDOW_SIZE[0] / 2) / WINDOW_SIZE[0];
+		rely = -(sphere_size * 7.0f / 6.0f) * (float)(y - WINDOW_SIZE[1] / 2) / WINDOW_SIZE[1];
+		relz = -(sphere_size * 7.0f / 6.0f) * (float)sin(cam.theta * pi / 180) * (float)(x - WINDOW_SIZE[0] / 2) / WINDOW_SIZE[0];
+		switch (temp) {
+		case 1:
+			laptop_bag.x = relx;
+			laptop_bag.y = rely;
+			laptop_bag.z = relz;
+			break;
+		case 2:
+			big_ben.x = relx;
+			big_ben.y = rely;
+			big_ben.z = relz;
+			break;
+		case 3:
+			taj.x = relx;
+			taj.y = rely;
+			taj.z = relz;
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+void onMouse(int button, int state, int x, int y) {
+	if (state != GLUT_DOWN) {
+		return;
+	}
+
+	GLbyte color[4];
+	GLfloat depth;
+	GLuint index;
+
+	glReadPixels(x, WINDOW_SIZE[1] - y - 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, color);
+	glReadPixels(x, WINDOW_SIZE[1] - y - 1, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+	glReadPixels(x, WINDOW_SIZE[1] - y - 1, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
+
+	printf("\nClicked on pixel: (%d, %d), color: %02hhx%02hhx%02hhx%02hhx, depth: %f, stencil index: %u.\n", x, y, color[0], color[1], color[2], color[3], depth, index);
+
+	if (dragaround) {
+		dragaround = false;
+		switch (temp) {
+		case 1:
+			printf("LB has been released at (%.2f, %.2f, %.2f) world coordinates.");
+			laptop_bag.should_pause = waspaused;
+			break;
+		case 2:
+			big_ben.should_pause = waspaused;
+			break;
+		case 3:
+			taj.should_pause = waspaused;
+			break;
+		default:
+			break;
+		}
+	}
+
+	switch (index) {
+	case 1:
+		temp = 1;
+		printf("selected lb");
+		waspaused = laptop_bag.paused;
+		laptop_bag.should_pause = true;
+		dragaround = true;
+		break;
+	case 2:
+		temp = 2;
+		waspaused = big_ben.paused;
+		big_ben.should_pause = true;
+		dragaround = true;
+		break;
+	case 3:
+		temp = 3;
+		waspaused = taj.paused;
+		taj.should_pause = true;
+		dragaround = true;
+		break;
+	}
+}
+
 void display()
 {
 	using namespace globals;
+
+	glClearStencil(0);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -373,16 +463,22 @@ void display()
 
 	glLoadIdentity();
 
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
 	gluLookAt(cam.x, cam.y, cam.z, cam.lax, cam.lay, cam.laz, cam.upx, cam.upy, cam.upz);
 
 	glColor3f(.5, .5, .5);
 
+	glStencilFunc(GL_ALWAYS, 1, -1);
 	obj(laptop_bag, laptop_bag_vertices, laptop_bag_faces);
 	laptop_bag = randomMotion(laptop_bag);
 
+	glStencilFunc(GL_ALWAYS, 2, -1);
 	obj(big_ben, big_ben_vertices, big_ben_faces);
 	big_ben = randomMotion(big_ben);
 
+	glStencilFunc(GL_ALWAYS, 3, -1);
 	obj(taj, taj_vertices, taj_faces);
 	taj = randomMotion(taj);
 
@@ -390,6 +486,7 @@ void display()
 	tie(big_ben, taj) = handleObjectsCollision(big_ben, taj);
 	tie(taj, laptop_bag) = handleObjectsCollision(taj, laptop_bag);
 
+	glStencilFunc(GL_ALWAYS, 4, -1);
 	sphere();
 
 	glutSwapBuffers();
@@ -405,7 +502,7 @@ int main(int argc, char* argv[])
 
 	glutInitWindowSize(WINDOW_SIZE[0], WINDOW_SIZE[1]);
 	glutInitWindowPosition(10, 10);
-	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
+	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE | GLUT_STENCIL);
 
 	glutCreateWindow("3 Bouncing Objects");
 
@@ -418,6 +515,10 @@ int main(int argc, char* argv[])
 	glutDisplayFunc(display);
 
 	glutKeyboardFunc(handleKeyPress);
+
+	glutMouseFunc(onMouse);
+
+	glutPassiveMotionFunc(currMousePos);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
