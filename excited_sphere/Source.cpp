@@ -100,13 +100,16 @@ public:
 	bool should_pause = false;
 	bool paused = false;
 	float size = 0;
-	float color[3] = { random_number(), random_number(), random_number() };
+	float color[10] = { 0 };
 	float vx = (-0.5f + random_number()) / 200, vy = (-0.5f + random_number()) / 200, vz = (-0.5f + random_number()) / 200;
 	float angle = 0, rx = random_number() / 100, ry = random_number() / 100, rz = random_number() / 100;
 
 	Object3D(float sz = 0, float stx = -0.5f + random_number()) {
 		x = stx;
 		size = sz;
+		for (int _ = 0; _ < 10; ++_) {
+			color[_] = random_number();
+		}
 	}
 };
 
@@ -159,6 +162,7 @@ void cube(Object3D t) {
 }
 
 void obj(Object3D t, std::vector <glm::vec3> vertices, std::vector <std::tuple <int, int, int>> faces) {
+	int c = 0;
 	glPushMatrix();
 	glTranslatef(t.x, t.y, t.z);
 	glRotatef(t.angle, t.rx, t.ry, t.rz);
@@ -171,7 +175,7 @@ void obj(Object3D t, std::vector <glm::vec3> vertices, std::vector <std::tuple <
 		auto& v1 = vertices[x];
 		auto& v2 = vertices[y];
 		auto& v3 = vertices[z];
-		 glColor3f(random_number(), random_number(), random_number());
+		glColor3f(t.color[c++ % 10], t.color[c++ % 10], t.color[c++ % 10]);
 		glVertex3f(v1.x, v1.y, v1.z);
 		glVertex3f(v2.x, v2.y, v2.z);
 		glVertex3f(v3.x, v3.y, v3.z);
