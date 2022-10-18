@@ -85,7 +85,7 @@ public:
 
 };
 
-
+// Outer Sphere for all the objects
 void sphere(float size = sphere_size) {
 	glPushMatrix();
 	glColor3f(.6, .6, .6);
@@ -95,24 +95,36 @@ void sphere(float size = sphere_size) {
 
 class Object3D {
 public:
+	// variables to store coordinates of the object
 	float x = 0.5 - random_number(), y = 0.5 - random_number(), z = 0.5 - random_number();
+	
+	// Variables to handle pausing and playing
 	float temp[3] = { 0,0,0 };
 	bool should_pause = false;
 	bool paused = false;
+
 	float size = 0;
+	// Array to store the generated colors
 	float color[10] = { 0 };
+	// Velocity of the objects
 	float vx = (-0.5f + random_number()) / 200, vy = (-0.5f + random_number()) / 200, vz = (-0.5f + random_number()) / 200;
+	// Angle of the objects
 	float angle = 0, rx = random_number() / 100, ry = random_number() / 100, rz = random_number() / 100;
 
-	Object3D(float sz = 0, float stx = -0.5f + random_number()) {
+	// Initializing the object with starting size, coordinates and colors
+	Object3D(float stsize = 0, float stx = -0.5f + random_number(), float sty = -0.5f + random_number(), float stz = -0.5f + random_number()) {
 		x = stx;
-		size = sz;
+		y = sty;
+		z = stz;
+		size = stsize;
+		// Pre-generating random colors for the triangles for faster computation
 		for (int _ = 0; _ < 10; ++_) {
 			color[_] = random_number();
 		}
 	}
 };
 
+// Function to read the obj file and convert it into an object
 void read_mesh(const std::string& filename, float scale, std::vector <glm::vec3> &vertices, std::vector <std::tuple <int, int, int>> &faces) {
 	std::ifstream file(filename);
 
@@ -151,16 +163,7 @@ void read_mesh(const std::string& filename, float scale, std::vector <glm::vec3>
 	file.close();
 }
 
-void cube(Object3D t) {
-	glPushMatrix();
-	glColor3f(t.color[0], t.color[1], t.color[2]);
-	glTranslatef(t.x, t.y, t.z);
-	glRotatef(t.angle, t.rx, t.ry, t.rz);
-	setMaterial(0.2, 0.2, 0.2, 0.3, 0.3, 0.3, 0.5, 0.5, 0.5, 64);
-	glutSolidCube(t.size);
-	glPopMatrix();
-}
-
+// Function to render the objects
 void obj(Object3D t, std::vector <glm::vec3> vertices, std::vector <std::tuple <int, int, int>> faces) {
 	int c = 0;
 	glPushMatrix();
@@ -184,6 +187,7 @@ void obj(Object3D t, std::vector <glm::vec3> vertices, std::vector <std::tuple <
 	glPopMatrix();
 }
 
+// Function to find the distance between two objects
 float dist(float ax, float ay, float az, float bx, float by, float bz) {
 	float ans = 0;
 	ans += pow(ax - bx, 2);
@@ -205,6 +209,8 @@ Object3D handlePause(Object3D t) {
 	}
 	return t;
 }
+
+// COllision handlers check if the object is within a certain distance to be considered as collided
 
 Object3D handleSphereCollision(Object3D t) {
 	float n = dist(t.x, t.y, t.z, 0, 0, 0);
@@ -323,20 +329,25 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 	case 'r':
 		resetCam();
 		break;
+	// Pause all
 	case ' ':
 		laptop_bag.should_pause = !laptop_bag.should_pause;
 		big_ben.should_pause = !big_ben.should_pause;
 		taj.should_pause = !taj.should_pause;
 		break;
+	// Pause laptop bag
 	case '1':
 		laptop_bag.should_pause = !laptop_bag.should_pause;
 		break;
+	// Pause Big Ben
 	case '2':
 		big_ben.should_pause = !big_ben.should_pause;
 		break;
+	// Pause Taj Mahal
 	case '3':
 		taj.should_pause = !taj.should_pause;
 		break;
+	// Rotate all paused objects left
 	case '4':
 		if (laptop_bag.paused) {
 			laptop_bag.angle -= 1;
@@ -348,6 +359,7 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 			taj.angle -= 1;
 		}
 		break;
+	// Rotate all paused objects right
 	case '5':
 		if (laptop_bag.paused) {
 			laptop_bag.angle += 1;
@@ -367,7 +379,8 @@ void handleKeyPress(unsigned char key, int cur_x, int cur_y) {
 bool selected = false, waspaused = false, dragaround = false;
 int temp;
 
-void currMousePos(int x, int y) { // handles moving selected object around
+// Function to handle movement of selected objects
+void currMousePos(int x, int y) { 
 	float relx, rely, relz;
 	if (dragaround) {
 		relx = (sphere_size * 7.0f / 6.0f) * (float)cos(cam.theta * pi / 180) * (float)(x - WINDOW_SIZE[0] / 2) / WINDOW_SIZE[0];
@@ -414,7 +427,6 @@ void onMouse(int button, int state, int x, int y) {
 		dragaround = false;
 		switch (temp) {
 		case 1:
-			printf("LB has been released at (%.2f, %.2f, %.2f) world coordinates.");
 			laptop_bag.should_pause = waspaused;
 			break;
 		case 2:
@@ -431,7 +443,6 @@ void onMouse(int button, int state, int x, int y) {
 	switch (index) {
 	case 1:
 		temp = 1;
-		printf("selected lb");
 		waspaused = laptop_bag.paused;
 		laptop_bag.should_pause = true;
 		dragaround = true;
